@@ -1,447 +1,202 @@
-const express = require("express");
-const mysql = require("mysql2");
-
-const app = express();
-
-
-// =====================================
-// MIDDLEWARE
-// =====================================
-
-app.use(express.json());
-app.use(express.static("."));
+const bookingForm = document.getElementById("bookingForm");
+const message = document.getElementById("message");
+const totalPrice = document.getElementById("totalPrice");
 
 
 // =====================================
-// CUSTOMER HOME PAGE
+// SERVICE SELECTION
 // =====================================
 
-app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/index.html");
-});
-
-
-// =====================================
-// MYSQL CONNECTION
-// =====================================
-
-const db = mysql.createPool({
-    host: process.env.MYSQLHOST,
-    port: Number(process.env.MYSQLPORT || 3306),
-    user: process.env.MYSQLUSER,
-    password: process.env.MYSQLPASSWORD,
-    database: process.env.MYSQLDATABASE,
-    connectionLimit: 10,
-    waitForConnections: true,
-    queueLimit: 0
-});
-
-
-// =====================================
-// DATABASE CONNECTION TEST
-// =====================================
-
-db.getConnection((err, connection) => {
-
-    if (err) {
-
-        console.log("Database connection failed");
-        console.log(err.message);
-
-    } else {
-
-        console.log("Database connected successfully");
-
-        connection.release();
-
-    }
-
-});
-
-
-// =====================================
-// CUSTOMER BOOKING API
-// MULTIPLE SERVICES
-// =====================================
-
-app.post("/book", (req, res) => {
-
-    const {
-        name,
-        phone,
-        email,
-        services,
-        date,
-        time
-    } = req.body;
-
-
-    // Validation
-
-    if (
-        !name ||
-        !phone ||
-        !Array.isArray(services) ||
-        services.length === 0 ||
-        !date ||
-        !time
-    ) {
-
-        return res.status(400).json({
-            message:
-                "Please fill all required fields and select at least one service."
-        });
-
-    }
-
-
-    // =====================================
-    // INSERT CUSTOMER
-    // =====================================
-
-    const customerQuery = `
-        INSERT INTO customers
-        (name, phone, email)
-        VALUES (?, ?, ?)
-    `;
-
-
-    db.query(
-        customerQuery,
-        [name, phone, email],
-        (err, customerResult) => {
-
-            if (err) {
-
-                console.log(
-                    "Customer insert error:",
-                    err.message
-                );
-
-                return res.status(500).json({
-                    message:
-                        "Unable to save customer."
-                });
-
-            }
-
-
-            const customerId =
-                customerResult.insertId;
-
-
-            // =====================================
-            // INSERT APPOINTMENT
-            // =====================================
-            // First service is kept in the old
-            // service_id column for compatibility.
-            // All selected services are also stored
-            // in appointment_services.
-
-            const appointmentQuery = `
-                INSERT INTO appointments
-                (
-                    customer_id,
-                    service_id,
-                    appointment_date,
-                    appointment_time,
-                    status
-                )
-                VALUES (?, ?, ?, ?, 'Pending')
-            `;
-
-
-            const firstServiceId =
-                services[0];
-
-
-            db.query(
-                appointmentQuery,
-                [
-                    customerId,
-                    firstServiceId,
-                    date,
-                    time
-                ],
-                (err, appointmentResult) => {
-
-                    if (err) {
-
-                        console.log(
-                            "Appointment insert error:",
-                            err.message
-                        );
-
-                        return res.status(500).json({
-                            message:
-                                "Unable to book appointment."
-                        });
-
-                    }
-
-
-                    const appointmentId =
-                        appointmentResult.insertId;
-
-
-                    // =====================================
-                    // INSERT ALL SELECTED SERVICES
-                    // =====================================
-
-                    const serviceValues =
-                        services.map(serviceId => [
-                            appointmentId,
-                            serviceId
-                        ]);
-
-
-                    const serviceQuery = `
-                        INSERT INTO appointment_services
-                        (
-                            appointment_id,
-                            service_id
-                        )
-                        VALUES ?
-                    `;
-
-
-                    db.query(
-                        serviceQuery,
-                        [serviceValues],
-                        (err) => {
-
-                            if (err) {
-
-                                console.log(
-                                    "Appointment services insert error:",
-                                    err.message
-                                );
-
-                                return res.status(500).json({
-                                    message:
-                                        "Unable to save selected services."
-                                });
-
-                            }
-
-
-                            // =====================================
-                            // SUCCESS
-                            // =====================================
-
-                            res.status(201).json({
-
-                                message:
-                                    "Appointment booked successfully!"
-
-                            });
-
-                        }
-                    );
-
-                }
-            );
-
-        }
-    );
-
-});
-
-
-// =====================================
-// GET ALL APPOINTMENTS
-// ADMIN DASHBOARD
-// =====================================
-
-app.get("/appointments", (req, res) => {
-
-    const query = `
-        SELECT
-            a.appointment_id,
-
-            c.name AS customer_name,
-
-            c.phone,
-
-            c.email,
-
-            GROUP_CONCAT(
-                DISTINCT s.service_name
-                ORDER BY s.service_id
-                SEPARATOR ', '
-            ) AS service_name,
-
-            COALESCE(
-                SUM(DISTINCT s.price),
-                0
-            ) AS price,
-
-            a.appointment_date,
-
-            a.appointment_time,
-
-            a.status
-
-        FROM appointments a
-
-        JOIN customers c
-            ON a.customer_id = c.customer_id
-
-        LEFT JOIN appointment_services aps
-            ON a.appointment_id = aps.appointment_id
-
-        LEFT JOIN services s
-            ON aps.service_id = s.service_id
-
-        GROUP BY
-            a.appointment_id,
-            c.name,
-            c.phone,
-            c.email,
-            a.appointment_date,
-            a.appointment_time,
-            a.status
-
-        ORDER BY a.appointment_id DESC
-    `;
-
-
-    db.query(
-        query,
-        (err, results) => {
-
-            if (err) {
-
-                console.log(
-                    "Appointment fetch error:",
-                    err.message
-                );
-
-                return res.status(500).json({
-
-                    message:
-                        "Unable to fetch appointments."
-
-                });
-
-            }
-
-
-            res.json(results);
-
-        }
-    );
-
-});
-
-
-// =====================================
-// ACCEPT / REJECT APPOINTMENT
-// =====================================
-
-app.put(
-    "/appointments/:id/status",
-    (req, res) => {
-
-        const appointmentId =
-            req.params.id;
-
-        const { status } = req.body;
-
-
-        // Only these statuses are allowed
-
-        if (
-            status !== "Accepted" &&
-            status !== "Rejected"
-        ) {
-
-            return res.status(400).json({
-
-                message:
-                    "Invalid status."
-
-            });
-
-        }
-
-
-        const query = `
-            UPDATE appointments
-
-            SET status = ?
-
-            WHERE appointment_id = ?
-        `;
-
-
-        db.query(
-            query,
-            [
-                status,
-                appointmentId
-            ],
-            (err, result) => {
-
-                if (err) {
-
-                    console.log(
-                        "Status update error:",
-                        err.message
-                    );
-
-                    return res.status(500).json({
-
-                        message:
-                            "Unable to update appointment status."
-
-                    });
-
-                }
-
-
-                if (result.affectedRows === 0) {
-
-                    return res.status(404).json({
-
-                        message:
-                            "Appointment not found."
-
-                    });
-
-                }
-
-
-                res.json({
-
-                    message:
-                        `Appointment ${status.toLowerCase()} successfully.`
-
-                });
-
-            }
-        );
-
-    }
+const serviceCheckboxes = document.querySelectorAll(
+    'input[name="service"]'
 );
 
 
 // =====================================
-// START SERVER
+// CALCULATE TOTAL
 // =====================================
 
-const PORT =
-    process.env.PORT || 3000;
+function calculateTotal() {
+
+    let total = 0;
+
+    serviceCheckboxes.forEach(service => {
+
+        if (service.checked) {
+
+            total += Number(service.dataset.price);
+
+        }
+
+    });
+
+    totalPrice.textContent = `Total: ₹${total}`;
+}
 
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
+// Add change event to every checkbox
 
-        console.log(
-            `Server running on port ${PORT}`
-        );
+serviceCheckboxes.forEach(service => {
+
+    service.addEventListener(
+        "change",
+        calculateTotal
+    );
+
+});
+
+
+// =====================================
+// BOOK APPOINTMENT
+// =====================================
+
+bookingForm.addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+
+        const name =
+            document.getElementById("name").value.trim();
+
+        const phone =
+            document.getElementById("phone").value.trim();
+
+        const email =
+            document.getElementById("email").value.trim();
+
+        const date =
+            document.getElementById("date").value;
+
+        const time =
+            document.getElementById("time").value;
+
+
+        // Get selected services
+
+        const selectedServices = [];
+
+        serviceCheckboxes.forEach(service => {
+
+            if (service.checked) {
+
+                selectedServices.push(
+                    Number(service.value)
+                );
+
+            }
+
+        });
+
+
+        // Validation
+
+        if (
+            !name ||
+            !phone ||
+            selectedServices.length === 0 ||
+            !date ||
+            !time
+        ) {
+
+            message.textContent =
+                "Please fill all required fields and select at least one service.";
+
+            message.style.color = "red";
+
+            return;
+
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/book",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        name: name,
+
+                        phone: phone,
+
+                        email: email,
+
+                        services: selectedServices,
+
+                        date: date,
+
+                        time: time
+
+                    })
+                }
+            );
+
+
+            const data =
+                await response.json();
+
+
+            if (response.ok) {
+
+                message.innerHTML = `
+                    <div class="success-message">
+
+                        <h3>
+                            ✅ Appointment Booked Successfully!
+                        </h3>
+
+                        <p>
+                            Your appointment request has been received.
+                        </p>
+
+                        <p>
+                            Please wait for confirmation from the salon.
+                        </p>
+
+                    </div>
+                `;
+
+                message.style.color = "green";
+
+
+                // Reset form
+
+                bookingForm.reset();
+
+                totalPrice.textContent =
+                    "Total: ₹0";
+
+
+            } else {
+
+                message.textContent =
+                    data.message ||
+                    "Unable to book appointment.";
+
+                message.style.color = "red";
+
+            }
+
+
+        } catch (error) {
+
+            console.log(error);
+
+            message.textContent =
+                "Server error. Please try again.";
+
+            message.style.color = "red";
+
+        }
 
     }
 );
