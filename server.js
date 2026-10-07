@@ -3,44 +3,36 @@ const mysql = require("mysql2");
 
 const app = express();
 
-
-// =====================================
-// MIDDLEWARE
-// =====================================
-
 app.use(express.json());
 app.use(express.static("."));
-
-
-// =====================================
-// CUSTOMER HOME PAGE
-// =====================================
 
 app.get("/", (req, res) => {
     res.sendFile(__dirname + "/index.html");
 });
 
 
-// =====================================
 // MYSQL CONNECTION
-// RAILWAY DATABASE
-// =====================================
 
 const db = mysql.createPool({
+
     host: process.env.MYSQLHOST,
+
     port: Number(process.env.MYSQLPORT || 3306),
+
     user: process.env.MYSQLUSER,
+
     password: process.env.MYSQLPASSWORD,
+
     database: process.env.MYSQLDATABASE,
+
     connectionLimit: 10,
+
     waitForConnections: true,
+
     queueLimit: 0
+
 });
 
-
-// =====================================
-// DATABASE CONNECTION TEST
-// =====================================
 
 db.getConnection((err, connection) => {
 
@@ -52,16 +44,14 @@ db.getConnection((err, connection) => {
     } else {
 
         console.log("Database connected successfully");
-
         connection.release();
+
     }
 
 });
 
 
-// =====================================
-// CUSTOMER BOOKING API
-// =====================================
+// BOOK APPOINTMENT
 
 app.post("/book", (req, res) => {
 
@@ -69,24 +59,32 @@ app.post("/book", (req, res) => {
         name,
         phone,
         email,
-        service,
+        services,
         date,
         time
     } = req.body;
 
 
-    // Validation
-
-    if (!name || !phone || !service || !date || !time) {
+    if (
+        !name ||
+        !phone ||
+        !Array.isArray(services) ||
+        services.length === 0 ||
+        !date ||
+        !time
+    ) {
 
         return res.status(400).json({
-            message: "All required fields are necessary."
+
+            message:
+                "Please fill all required fields and select at least one service."
+
         });
 
     }
 
 
-    // Insert customer
+    // INSERT CUSTOMER
 
     const customerQuery = `
         INSERT INTO customers
@@ -96,9 +94,12 @@ app.post("/book", (req, res) => {
 
 
     db.query(
+
         customerQuery,
+
         [name, phone, email],
-        (err, result) => {
+
+        (err, customerResult) => {
 
             if (err) {
 
@@ -108,19 +109,25 @@ app.post("/book", (req, res) => {
                 );
 
                 return res.status(500).json({
-                    message: "Unable to save customer."
+
+                    message:
+                        "Unable to save customer."
+
                 });
 
             }
 
 
-            const customerId = result.insertId;
+            const customerId =
+                customerResult.insertId;
 
 
-            // Insert appointment
+            // INSERT APPOINTMENT
 
             const appointmentQuery = `
+
                 INSERT INTO appointments
+
                 (
                     customer_id,
                     service_id,
@@ -128,19 +135,28 @@ app.post("/book", (req, res) => {
                     appointment_time,
                     status
                 )
+
                 VALUES (?, ?, ?, ?, 'Pending')
+
             `;
 
 
+            const firstServiceId =
+                services[0];
+
+
             db.query(
+
                 appointmentQuery,
+
                 [
                     customerId,
-                    service,
+                    firstServiceId,
                     date,
                     time
                 ],
-                (err, result) => {
+
+                (err, appointmentResult) => {
 
                     if (err) {
 
@@ -150,46 +166,126 @@ app.post("/book", (req, res) => {
                         );
 
                         return res.status(500).json({
+
                             message:
                                 "Unable to book appointment."
+
                         });
 
                     }
 
 
-                    res.status(201).json({
+                    const appointmentId =
+                        appointmentResult.insertId;
 
-                        message:
-                            "Appointment booked successfully!"
 
-                    });
+                    // INSERT ALL SERVICES
+
+                    const serviceValues =
+                        services.map(serviceId => [
+
+                            appointmentId,
+                            serviceId
+
+                        ]);
+
+
+                    const serviceQuery = `
+
+                        INSERT INTO appointment_services
+
+                        (
+                            appointment_id,
+                            service_id
+                        )
+
+                        VALUES ?
+
+                    `;
+
+
+                    db.query(
+
+                        serviceQuery,
+
+                        [serviceValues],
+
+                        (err) => {
+
+                            if (err) {
+
+                                console.log(
+                                    "Appointment services insert error:",
+                                    err.message
+                                );
+
+                                return res.status(500).json({
+
+                                    message:
+                                        "Unable to save selected services."
+
+                                });
+
+                            }
+
+
+                            res.status(201).json({
+
+                                message:
+                                    "Appointment booked successfully!"
+
+                            });
+
+                        }
+
+                    );
 
                 }
+
             );
 
         }
+
     );
 
 });
 
 
-// =====================================
-// GET ALL APPOINTMENTS
-// ADMIN DASHBOARD USES THIS API
-// =====================================
+// GET APPOINTMENTS
 
 app.get("/appointments", (req, res) => {
 
     const query = `
+
         SELECT
+
             a.appointment_id,
+
             c.name AS customer_name,
+
             c.phone,
+
             c.email,
-            s.service_name,
-            s.price,
+
+            GROUP_CONCAT(
+
+                DISTINCT s.service_name
+
+                ORDER BY s.service_id
+
+                SEPARATOR ', '
+
+            ) AS service_name,
+
+            COALESCE(
+                SUM(s.price),
+                0
+            ) AS price,
+
             a.appointment_date,
+
             a.appointment_time,
+
             a.status
 
         FROM appointments a
@@ -197,46 +293,53 @@ app.get("/appointments", (req, res) => {
         JOIN customers c
             ON a.customer_id = c.customer_id
 
-        JOIN services s
-            ON a.service_id = s.service_id
+        LEFT JOIN appointment_services aps
+            ON a.appointment_id = aps.appointment_id
+
+        LEFT JOIN services s
+            ON aps.service_id = s.service_id
+
+        GROUP BY
+
+            a.appointment_id,
+            c.name,
+            c.phone,
+            c.email,
+            a.appointment_date,
+            a.appointment_time,
+            a.status
 
         ORDER BY a.appointment_id DESC
+
     `;
 
 
-    db.query(
-        query,
-        (err, results) => {
+    db.query(query, (err, results) => {
 
-            if (err) {
+        if (err) {
 
-                console.log(
-                    "Appointment fetch error:",
-                    err.message
-                );
+            console.log(
+                "Appointment fetch error:",
+                err.message
+            );
 
-                return res.status(500).json({
+            return res.status(500).json({
 
-                    message:
-                        "Unable to fetch appointments."
+                message:
+                    "Unable to fetch appointments."
 
-                });
-
-            }
-
-
-            res.json(results);
+            });
 
         }
-    );
+
+        res.json(results);
+
+    });
 
 });
 
 
-// =====================================
-// ACCEPT / REJECT APPOINTMENT
-// ADMIN DASHBOARD USES THIS API
-// =====================================
+// ACCEPT / REJECT
 
 app.put(
     "/appointments/:id/status",
@@ -245,10 +348,9 @@ app.put(
         const appointmentId =
             req.params.id;
 
-        const { status } = req.body;
+        const { status } =
+            req.body;
 
-
-        // Only these two statuses are allowed
 
         if (
             status !== "Accepted" &&
@@ -266,20 +368,25 @@ app.put(
 
 
         const query = `
+
             UPDATE appointments
 
             SET status = ?
 
             WHERE appointment_id = ?
+
         `;
 
 
         db.query(
+
             query,
+
             [
                 status,
                 appointmentId
             ],
+
             (err, result) => {
 
                 if (err) {
@@ -298,8 +405,6 @@ app.put(
 
                 }
 
-
-                // Appointment doesn't exist
 
                 if (result.affectedRows === 0) {
 
@@ -321,22 +426,31 @@ app.put(
                 });
 
             }
+
         );
 
     }
 );
 
 
-// =====================================
 // START SERVER
-// =====================================
 
-const PORT = process.env.PORT || 3000;
+const PORT =
+    process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
 
-    console.log(
-        `Server running on port ${PORT}`
-    );
+app.listen(
 
-});
+    PORT,
+
+    "0.0.0.0",
+
+    () => {
+
+        console.log(
+            `Server running on port ${PORT}`
+        );
+
+    }
+
+);

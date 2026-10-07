@@ -4,38 +4,50 @@ const totalPrice = document.getElementById("totalPrice");
 
 
 // =====================================
+// SERVICE SELECTION
+// =====================================
+
+const serviceCheckboxes =
+    document.querySelectorAll(
+        'input[name="service"]'
+    );
+
+
+// =====================================
 // CALCULATE TOTAL
 // =====================================
 
 function calculateTotal() {
 
-    const selectedServices =
-        document.querySelectorAll(
-            'input[name="service"]:checked'
-        );
-
     let total = 0;
 
-    selectedServices.forEach(service => {
-        total += Number(service.dataset.price);
+    serviceCheckboxes.forEach(service => {
+
+        if (service.checked) {
+
+            total += Number(
+                service.dataset.price
+            );
+
+        }
+
     });
 
-    totalPrice.textContent = `Total: ₹${total}`;
+    totalPrice.textContent =
+        `Total: ₹${total}`;
 }
 
 
-// Add change event
+// Calculate total whenever service changes
 
-document
-    .querySelectorAll('input[name="service"]')
-    .forEach(service => {
+serviceCheckboxes.forEach(service => {
 
-        service.addEventListener(
-            "change",
-            calculateTotal
-        );
+    service.addEventListener(
+        "change",
+        calculateTotal
+    );
 
-    });
+});
 
 
 // =====================================
@@ -50,47 +62,48 @@ bookingForm.addEventListener(
 
 
         const name =
-            document.getElementById("name").value.trim();
+            document.getElementById(
+                "name"
+            ).value.trim();
 
         const phone =
-            document.getElementById("phone").value.trim();
+            document.getElementById(
+                "phone"
+            ).value.trim();
 
         const email =
-            document.getElementById("email").value.trim();
+            document.getElementById(
+                "email"
+            ).value.trim();
 
         const date =
-            document.getElementById("date").value;
+            document.getElementById(
+                "date"
+            ).value;
 
         const time =
-            document.getElementById("time").value;
+            document.getElementById(
+                "time"
+            ).value;
 
 
-        // Get selected services AGAIN
-        // at the time of booking
-
-        const checkedServices =
-            document.querySelectorAll(
-                'input[name="service"]:checked'
-            );
-
+        // Get selected services
 
         const selectedServices = [];
 
-        checkedServices.forEach(service => {
+        serviceCheckboxes.forEach(
+            service => {
 
-            selectedServices.push(
-                Number(service.value)
-            );
+                if (service.checked) {
 
-        });
+                    selectedServices.push(
+                        Number(service.value)
+                    );
 
+                }
 
-        console.log("Name:", name);
-        console.log("Phone:", phone);
-        console.log("Email:", email);
-        console.log("Services:", selectedServices);
-        console.log("Date:", date);
-        console.log("Time:", time);
+            }
+        );
 
 
         // =====================================
@@ -119,7 +132,9 @@ bookingForm.addEventListener(
         }
 
 
-        if (selectedServices.length === 0) {
+        if (
+            selectedServices.length === 0
+        ) {
 
             message.textContent =
                 "Please select at least one service.";
@@ -153,7 +168,7 @@ bookingForm.addEventListener(
 
 
         // =====================================
-        // SEND TO SERVER
+        // SEND DATA TO SERVER
         // =====================================
 
         try {
@@ -185,6 +200,7 @@ bookingForm.addEventListener(
                             time: time
 
                         })
+
                     }
                 );
 
@@ -196,6 +212,7 @@ bookingForm.addEventListener(
             if (response.ok) {
 
                 message.innerHTML = `
+
                     <div class="success-message">
 
                         <h3>
@@ -211,9 +228,11 @@ bookingForm.addEventListener(
                         </p>
 
                     </div>
+
                 `;
 
-                message.style.color = "green";
+                message.style.color =
+                    "green";
 
 
                 bookingForm.reset();
@@ -228,7 +247,8 @@ bookingForm.addEventListener(
                     data.message ||
                     "Unable to book appointment.";
 
-                message.style.color = "red";
+                message.style.color =
+                    "red";
 
             }
 
@@ -240,7 +260,8 @@ bookingForm.addEventListener(
             message.textContent =
                 "Server error. Please try again.";
 
-            message.style.color = "red";
+            message.style.color =
+                "red";
 
         }
 
