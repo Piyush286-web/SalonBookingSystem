@@ -4,46 +4,38 @@ const totalPrice = document.getElementById("totalPrice");
 
 
 // =====================================
-// SERVICE SELECTION
-// =====================================
-
-const serviceCheckboxes = document.querySelectorAll(
-    'input[name="service"]'
-);
-
-
-// =====================================
 // CALCULATE TOTAL
 // =====================================
 
 function calculateTotal() {
 
+    const selectedServices =
+        document.querySelectorAll(
+            'input[name="service"]:checked'
+        );
+
     let total = 0;
 
-    serviceCheckboxes.forEach(service => {
-
-        if (service.checked) {
-
-            total += Number(service.dataset.price);
-
-        }
-
+    selectedServices.forEach(service => {
+        total += Number(service.dataset.price);
     });
 
     totalPrice.textContent = `Total: ₹${total}`;
 }
 
 
-// Add change event to every checkbox
+// Add change event
 
-serviceCheckboxes.forEach(service => {
+document
+    .querySelectorAll('input[name="service"]')
+    .forEach(service => {
 
-    service.addEventListener(
-        "change",
-        calculateTotal
-    );
+        service.addEventListener(
+            "change",
+            calculateTotal
+        );
 
-});
+    });
 
 
 // =====================================
@@ -73,72 +65,128 @@ bookingForm.addEventListener(
             document.getElementById("time").value;
 
 
-        // Get selected services
+        // Get selected services AGAIN
+        // at the time of booking
+
+        const checkedServices =
+            document.querySelectorAll(
+                'input[name="service"]:checked'
+            );
+
 
         const selectedServices = [];
 
-        serviceCheckboxes.forEach(service => {
+        checkedServices.forEach(service => {
 
-            if (service.checked) {
-
-                selectedServices.push(
-                    Number(service.value)
-                );
-
-            }
+            selectedServices.push(
+                Number(service.value)
+            );
 
         });
 
 
-        // Validation
+        console.log("Name:", name);
+        console.log("Phone:", phone);
+        console.log("Email:", email);
+        console.log("Services:", selectedServices);
+        console.log("Date:", date);
+        console.log("Time:", time);
 
-        if (
-            !name ||
-            !phone ||
-            selectedServices.length === 0 ||
-            !date ||
-            !time
-        ) {
+
+        // =====================================
+        // VALIDATION
+        // =====================================
+
+        if (name === "") {
 
             message.textContent =
-                "Please fill all required fields and select at least one service.";
+                "Please enter your name.";
 
             message.style.color = "red";
 
             return;
-
         }
 
 
+        if (phone === "") {
+
+            message.textContent =
+                "Please enter your phone number.";
+
+            message.style.color = "red";
+
+            return;
+        }
+
+
+        if (selectedServices.length === 0) {
+
+            message.textContent =
+                "Please select at least one service.";
+
+            message.style.color = "red";
+
+            return;
+        }
+
+
+        if (date === "") {
+
+            message.textContent =
+                "Please select appointment date.";
+
+            message.style.color = "red";
+
+            return;
+        }
+
+
+        if (time === "") {
+
+            message.textContent =
+                "Please select appointment time.";
+
+            message.style.color = "red";
+
+            return;
+        }
+
+
+        // =====================================
+        // SEND TO SERVER
+        // =====================================
+
         try {
 
-            const response = await fetch(
-                "/book",
-                {
-                    method: "POST",
+            const response =
+                await fetch(
+                    "/book",
+                    {
+                        method: "POST",
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
 
-                    body: JSON.stringify({
+                        body: JSON.stringify({
 
-                        name: name,
+                            name: name,
 
-                        phone: phone,
+                            phone: phone,
 
-                        email: email,
+                            email: email,
 
-                        services: selectedServices,
+                            services:
+                                selectedServices,
 
-                        date: date,
+                            date: date,
 
-                        time: time
+                            time: time
 
-                    })
-                }
-            );
+                        })
+                    }
+                );
 
 
             const data =
@@ -167,8 +215,6 @@ bookingForm.addEventListener(
 
                 message.style.color = "green";
 
-
-                // Reset form
 
                 bookingForm.reset();
 
