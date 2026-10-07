@@ -6,7 +6,8 @@ async function loadAppointments() {
 
         const appointments = await response.json();
 
-        const table = document.getElementById("appointmentTable");
+        const table =
+            document.getElementById("appointmentTable");
 
         table.innerHTML = "";
 
@@ -19,7 +20,9 @@ async function loadAppointments() {
 
         appointments.forEach(appointment => {
 
-            // Count status
+            // =====================================
+            // COUNT STATUS
+            // =====================================
 
             if (appointment.status === "Pending") {
                 pending++;
@@ -34,17 +37,23 @@ async function loadAppointments() {
             }
 
 
-            const row = document.createElement("tr");
+            const row =
+                document.createElement("tr");
 
 
-            // Format date
+            // =====================================
+            // FORMAT DATE
+            // =====================================
 
-            const formattedDate = new Date(
-                appointment.appointment_date
-            ).toLocaleDateString("en-IN");
+            const formattedDate =
+                new Date(
+                    appointment.appointment_date
+                ).toLocaleDateString("en-IN");
 
 
-            // Format time
+            // =====================================
+            // FORMAT TIME
+            // =====================================
 
             const formattedTime =
                 appointment.appointment_time
@@ -55,9 +64,9 @@ async function loadAppointments() {
             let actionHTML = "";
 
 
-            // -------------------------
+            // =====================================
             // PENDING
-            // -------------------------
+            // =====================================
 
             if (appointment.status === "Pending") {
 
@@ -84,46 +93,46 @@ async function loadAppointments() {
             }
 
 
-            // -------------------------
+            // =====================================
             // ACCEPTED
-            // -------------------------
+            // =====================================
 
             else if (appointment.status === "Accepted") {
-
-                /*
-                    Customer phone number is used
-                    to open WhatsApp directly.
-                */
 
                 let customerNumber =
                     appointment.phone.replace(/\D/g, "");
 
 
-                // Add India country code if required
+                // Add India country code
 
                 if (customerNumber.length === 10) {
-                    customerNumber = "91" + customerNumber;
+
+                    customerNumber =
+                        "91" + customerNumber;
+
                 }
 
 
                 const whatsappMessage =
-                    `Hello ${appointment.customer_name},%0A%0A` +
+                    `Hello ${appointment.customer_name},\n\n` +
 
-                    `Your appointment at THE J SALON has been ACCEPTED.%0A%0A` +
+                    `Your appointment at THE J SALON has been ACCEPTED.\n\n` +
 
-                    `Service: ${appointment.service_name}%0A` +
+                    `Services: ${appointment.service_name}\n` +
 
-                    `Date: ${formattedDate}%0A` +
+                    `Date: ${formattedDate}\n` +
 
-                    `Time: ${formattedTime}%0A` +
+                    `Time: ${formattedTime}\n` +
 
-                    `Price: ₹${appointment.price}%0A%0A` +
+                    `Total Price: ₹${appointment.price}\n\n` +
 
                     `Thank you for choosing THE J SALON.`;
 
 
                 const whatsappURL =
-                    `https://wa.me/${customerNumber}?text=${whatsappMessage}`;
+                    `https://wa.me/${customerNumber}?text=${encodeURIComponent(
+                        whatsappMessage
+                    )}`;
 
 
                 actionHTML = `
@@ -140,9 +149,9 @@ async function loadAppointments() {
             }
 
 
-            // -------------------------
+            // =====================================
             // REJECTED
-            // -------------------------
+            // =====================================
 
             else if (appointment.status === "Rejected") {
 
@@ -155,7 +164,9 @@ async function loadAppointments() {
             }
 
 
-            // Create table row
+            // =====================================
+            // CREATE TABLE ROW
+            // =====================================
 
             row.innerHTML = `
 
@@ -209,6 +220,7 @@ async function loadAppointments() {
                     ${actionHTML}
 
                 </td>
+
             `;
 
 
@@ -217,7 +229,9 @@ async function loadAppointments() {
         });
 
 
-        // Update summary cards
+        // =====================================
+        // UPDATE SUMMARY CARDS
+        // =====================================
 
         document.getElementById(
             "totalAppointments"
@@ -247,6 +261,7 @@ async function loadAppointments() {
         );
 
     }
+
 }
 
 
@@ -262,30 +277,32 @@ async function updateStatus(
 
     try {
 
-        const response = await fetch(
-            `/appointments/${appointmentId}/status`,
-            {
-                method: "PUT",
+        const response =
+            await fetch(
+                `/appointments/${appointmentId}/status`,
+                {
+                    method: "PUT",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
-                    status: status
-                })
-            }
-        );
+                    body: JSON.stringify({
+                        status: status
+                    })
+
+                }
+            );
 
 
-        const result = await response.json();
+        const result =
+            await response.json();
 
 
         if (response.ok) {
 
             alert(result.message);
-
-            // Reload appointments
 
             loadAppointments();
 
@@ -308,10 +325,13 @@ async function updateStatus(
         );
 
     }
+
 }
 
 
 
-// Load appointments when page opens
+// =====================================
+// LOAD APPOINTMENTS
+// =====================================
 
 loadAppointments();

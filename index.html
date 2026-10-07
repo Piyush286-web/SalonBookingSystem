@@ -38,31 +38,56 @@
                 placeholder="Enter email"
             >
 
-            <label>Service</label>
+            <label>Select Services</label>
 
-            <select id="service">
+            <div class="services">
 
-                <option value="">
-                    Select Service
-                </option>
-
-                <option value="1">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="service"
+                        value="1"
+                        data-price="300"
+                    >
                     Haircut - ₹300
-                </option>
+                </label>
 
-                <option value="2">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="service"
+                        value="2"
+                        data-price="800"
+                    >
                     Hair Spa - ₹800
-                </option>
+                </label>
 
-                <option value="3">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="service"
+                        value="3"
+                        data-price="600"
+                    >
                     Facial - ₹600
-                </option>
+                </label>
 
-                <option value="4">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="service"
+                        value="4"
+                        data-price="1200"
+                    >
                     Hair Coloring - ₹1200
-                </option>
+                </label>
 
-            </select>
+            </div>
+
+            <p id="totalPrice">
+                Total: ₹0
+            </p>
+
 
             <label>Appointment Date</label>
 
@@ -71,6 +96,7 @@
                 id="date"
             >
 
+
             <label>Appointment Time</label>
 
             <input
@@ -78,15 +104,18 @@
                 id="time"
             >
 
+
             <button type="submit">
                 Book Appointment
             </button>
 
         </form>
 
+
         <p id="message"></p>
 
     </div>
+
 
     <script src="script.js"></script>
 
