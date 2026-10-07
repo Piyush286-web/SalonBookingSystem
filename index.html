@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Salon Booking System</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Salon Booking System</h1>
+
+        <form id="bookingForm">
+
+            <label>Name</label>
+            <input
+                type="text"
+                id="name"
+                placeholder="Enter your name"
+            >
+
+            <label>Phone</label>
+            <input
+                type="text"
+                id="phone"
+                placeholder="Enter phone number"
+            >
+
+            <label>Email</label>
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter email"
+            >
+
+            <label>Service</label>
+
+            <select id="service">
+
+                <option value="">
+                    Select Service
+                </option>
+
+                <option value="1">
+                    Haircut - ₹300
+                </option>
+
+                <option value="2">
+                    Hair Spa - ₹800
+                </option>
+
+                <option value="3">
+                    Facial - ₹600
+                </option>
+
+                <option value="4">
+                    Hair Coloring - ₹1200
+                </option>
+
+            </select>
+
+            <label>Appointment Date</label>
+
+            <input
+                type="date"
+                id="date"
+            >
+
+            <label>Appointment Time</label>
+
+            <input
+                type="time"
+                id="time"
+            >
+
+            <button type="submit">
+                Book Appointment
+            </button>
+
+        </form>
+
+        <p id="message"></p>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>

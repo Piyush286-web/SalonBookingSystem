@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Salon Admin Dashboard</title>
+
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Salon Admin Dashboard</h1>
+
+        <!-- Summary Cards -->
+
+        <div class="summary">
+
+            <div class="card">
+                <h3>Total Appointments</h3>
+                <p id="totalAppointments">0</p>
+            </div>
+
+            <div class="card">
+                <h3>Pending</h3>
+                <p id="pendingAppointments">0</p>
+            </div>
+
+            <div class="card">
+                <h3>Accepted</h3>
+                <p id="acceptedAppointments">0</p>
+            </div>
+
+            <div class="card">
+                <h3>Rejected</h3>
+                <p id="rejectedAppointments">0</p>
+            </div>
+
+        </div>
+
+
+        <h2>Appointments</h2>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Service</th>
+                        <th>Price</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="appointmentTable">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <script src="admin.js"></script>
+
+</body>
+</html>
